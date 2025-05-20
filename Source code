@@ -1,0 +1,400 @@
+# Import necessary libraries
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+# Import yfinance instead of pandas_datareader
+import yfinance as yf
+
+# Define ticker and date range
+tickers = 'AAPL'
+start_date = '1980-12-01'
+end_date = '2018-12-31'
+
+# Use yfinance to download data
+# Specify interval as '1d' for daily data
+stock_data = yf.download(tickers, start=start_date, end=end_date, interval='1d')
+
+# Continue with the rest of your original code
+stock_data.head(10)
+
+stock_data.describe()
+
+stock_data_len = stock_data['Close'].count()
+print(stock_data_len)
+
+close_prices = stock_data.iloc[:, 1:2].values
+print(close_prices)
+
+# Reindexing and filling missing values. Note that yfinance might return data with gaps.
+# The original code's approach to reindexing with all business days might still be useful
+# but requires careful handling of potential NaNs introduced by reindexing if
+# the downloaded data doesn't have an entry for every business day.
+# Let's stick to the original fillna for now after downloading with yfinance.
+# close_prices = stock_data.reindex(all_bussinessdays) # This line was commented out in original, keep it that way for now.
+close_prices = stock_data.fillna(method='ffill')
+
+close_prices.head(10)
+
+training_set = close_prices.iloc[:, 1:2].values
+
+print(training_set)
+
+from sklearn.preprocessing import MinMaxScaler
+sc = MinMaxScaler(feature_range = (0, 1))
+training_set_scaled = sc.fit_transform(training_set)
+print(training_set_scaled.shape)
+
+features = []
+labels = []
+# Use the length of the scaled training set for the loop range
+# since stock_data_len was based on the original data which might be shorter
+# if fillna added rows.
+# A safer approach might be to calculate the length after fillna and reindexing.
+# Let's use the shape of the training_set_scaled instead of the original stock_data_len
+# to ensure we iterate over the available scaled data.
+# Be mindful that if reindexing was intended to pad the data, the logic for feature/label creation
+# might need adjustment based on the expected input/output lengths.
+# For this fix, assuming the fillna handles missing days adequately and we want to use
+# the full length of the processed data.
+processed_data_len = len(training_set_scaled)
+
+for i in range(60, processed_data_len):
+    features.append(training_set_scaled[i-60:i, 0])
+    labels.append(training_set_scaled[i, 0])
+
+
+features = np.array(features)
+labels = np.array(labels)
+
+features = np.reshape(features, (features.shape[0], features.shape[1], 1))
+
+print(labels)
+
+print(features)
+
+print(features.shape)
+
+import tensorflow as tf
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.LSTM(units = 50, return_sequences = True, input_shape = (features.shape[1], 1)),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.LSTM(units = 50, return_sequences = True),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.LSTM(units = 50, return_sequences = True),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.LSTM(units = 50),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(units = 1)
+])
+
+#tf.keras.utils.plot_model(model, to_file='my_model.png')
+
+# Run tensorboard with the logdir
+#import os
+#LOG_BASE_DIR = './log'
+#os.makedirs(LOG_BASE_BASE_DIR, exist_ok=True)
+
+#!ls -l log
+
+#%load_ext tensorboard.notebook
+#%tensorboard --logdir {LOG_BASE_DIR}
+
+#import datetime
+#logdir = os.path.join(LOG_BASE_DIR, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+
+#from tensorflow.keras.callbacks import TensorBoard
+
+#tbCallBack = TensorBoard(logdir,histogram_freq=1)
+
+model.compile(optimizer = 'adam', loss = 'mean_squared_error')
+
+#import os
+#print(os.environ)
+
+#tf.test.gpu_device_name()
+
+#from tensorflow.python.client import device_lib
+#device_lib.list_local_devices()
+
+from time import time
+start = time()
+history = model.fit(features, labels, epochs = 20, batch_size = 32, verbose = 1)
+end = time()
+
+print('Total training time {} seconds'.format(end - start))
+
+#  [samples, days, features]
+print(features.shape)
+
+testing_start_date = '2019-01-01'
+testing_end_date = '2019-04-10'
+
+# Use yfinance for test data as well
+test_stock_data = yf.download(tickers, start=testing_start_date, end=testing_end_date, interval='1d')
+
+test_stock_data.tail()
+# Import necessary libraries
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+# Import yfinance instead of pandas_datareader
+import yfinance as yf
+
+# Define ticker and date range
+tickers = 'AAPL'
+start_date = '1980-12-01'
+end_date = '2018-12-31'
+
+# Use yfinance to download data
+# Specify interval as '1d' for daily data
+stock_data = yf.download(tickers, start=start_date, end=end_date, interval='1d')
+
+# Continue with the rest of your original code
+stock_data.head(10)
+
+stock_data.describe()
+
+stock_data_len = stock_data['Close'].count()
+print(stock_data_len)
+
+close_prices = stock_data.iloc[:, 1:2].values
+print(close_prices)
+
+# Reindexing and filling missing values. Note that yfinance might return data with gaps.
+# The original code's approach to reindexing with all business days might still be useful
+# but requires careful handling of potential NaNs introduced by reindexing if
+# the downloaded data doesn't have an entry for every business day.
+# Let's stick to the original fillna for now after downloading with yfinance.
+# close_prices = stock_data.reindex(all_bussinessdays) # This line was commented out in original, keep it that way for now.
+close_prices = stock_data.fillna(method='ffill')
+
+close_prices.head(10)
+
+training_set = close_prices.iloc[:, 1:2].values
+
+print(training_set)
+
+from sklearn.preprocessing import MinMaxScaler
+sc = MinMaxScaler(feature_range = (0, 1))
+training_set_scaled = sc.fit_transform(training_set)
+print(training_set_scaled.shape)
+
+features = []
+labels = []
+# Use the length of the scaled training set for the loop range
+# since stock_data_len was based on the original data which might be shorter
+# if fillna added rows.
+# A safer approach might be to calculate the length after fillna and reindexing.
+# Let's use the shape of the training_set_scaled instead of the original stock_data_len
+# to ensure we iterate over the available scaled data.
+# Be mindful that if reindexing was intended to pad the data, the logic for feature/label creation
+# might need adjustment based on the expected input/output lengths.
+# For this fix, assuming the fillna handles missing days adequately and we want to use
+# the full length of the processed data.
+processed_data_len = len(training_set_scaled)
+
+for i in range(60, processed_data_len):
+    features.append(training_set_scaled[i-60:i, 0])
+    labels.append(training_set_scaled[i, 0])
+
+
+features = np.array(features)
+labels = np.array(labels)
+
+features = np.reshape(features, (features.shape[0], features.shape[1], 1))
+
+print(labels)
+
+print(features)
+
+print(features.shape)
+
+import tensorflow as tf
+
+model = tf.keras.models.Sequential([
+    tf.keras.layers.LSTM(units = 50, return_sequences = True, input_shape = (features.shape[1], 1)),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.LSTM(units = 50, return_sequences = True),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.LSTM(units = 50, return_sequences = True),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.LSTM(units = 50),
+    tf.keras.layers.Dropout(0.2),
+    tf.keras.layers.Dense(units = 1)
+])
+
+#tf.keras.utils.plot_model(model, to_file='my_model.png')
+
+# Run tensorboard with the logdir
+#import os
+#LOG_BASE_DIR = './log'
+#os.makedirs(LOG_BASE_BASE_DIR, exist_ok=True)
+
+#!ls -l log
+
+#%load_ext tensorboard.notebook
+#%tensorboard --logdir {LOG_BASE_DIR}
+
+#import datetime
+#logdir = os.path.join(LOG_BASE_DIR, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+
+#from tensorflow.keras.callbacks import TensorBoard
+
+#tbCallBack = TensorBoard(logdir,histogram_freq=1)
+
+model.compile(optimizer = 'adam', loss = 'mean_squared_error')
+
+#import os
+#print(os.environ)
+
+#tf.test.gpu_device_name()
+
+#from tensorflow.python.client import device_lib
+#device_lib.list_local_devices()
+
+from time import time
+start = time()
+history = model.fit(features, labels, epochs = 20, batch_size = 32, verbose = 1)
+end = time()
+
+print('Total training time {} seconds'.format(end - start))
+
+#  [samples, days, features]
+print(features.shape)
+
+testing_start_date = '2019-01-01'
+testing_end_date = '2019-04-10'
+
+# Use yfinance for test data as well
+test_stock_data = yf.download(tickers, start=testing_start_date, end=testing_end_date, interval='1d')
+
+test_stock_data.tail()
+
+test_stock_data_processed = test_stock_data.iloc[:, 1:2].values
+
+print(test_stock_data_processed.shape)
+
+# Concatenate the 'Close' prices from both datasets
+all_stock_data = pd.concat((stock_data['Close'], test_stock_data['Close']), axis = 0)
+
+# Prepare inputs for prediction.
+# The logic here is to take the last 60 days from the training data
+# and the test data to create the input sequences for the test prediction.
+# The slicing `len(all_stock_data) - len(test_stock_data) - 60:`
+# correctly selects the last 60 days of the training data plus the test data.
+inputs = all_stock_data[len(all_stock_data) - len(test_stock_data) - 60:].values
+inputs = inputs.reshape(-1,1)
+inputs = sc.transform(inputs)
+
+# Create X_test features. The loop range (60, 129) corresponds to
+# creating prediction inputs for each day in the test set.
+# len(test_stock_data) is 69 for the original date range '2019-01-01' to '2019-04-10'.
+# The loop should go from 60 to 60 + len(test_stock_data).
+# Let's make this dynamic based on the actual length of test_stock_data.
+test_data_len = len(test_stock_data_processed)
+X_test = []
+for i in range(60, 60 + test_data_len):
+    X_test.append(inputs[i-60:i, 0])
+
+
+X_test = np.array(X_test)
+X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+predicted_stock_price = model.predict(X_test)
+predicted_stock_price = sc.inverse_transform(predicted_stock_price)
+
+plt.figure(figsize=(10,6))
+plt.plot(test_stock_data_processed, color='blue', label='Actual Apple Stock Price')
+plt.plot(predicted_stock_price , color='red', label='Predicted Apple Stock Price')
+plt.title('Apple Stock Price Prediction')
+plt.xlabel('Date')
+plt.ylabel('Apple Stock Price')
+plt.legend()
+plt.show()
+
+# The following block seems to be a repetition of the prediction part with a different loop range (60, 291).
+# This range (291) does not seem to align with the length of the test data or the combined data.
+# It appears to be based on an incorrect assumption about the data length.
+# Let's remove this potentially incorrect prediction block.
+
+# #inputs = inputs.reshape(-1,1)
+# #inputs = sc.transform(inputs)
+
+# test_inputs = test_stock_data_processed.reshape(-1,1)
+# test_inputs = sc.transform(test_inputs)
+
+# print(test_inputs.shape)
+
+# test_features = []
+# for i in range(60, 291): # This loop range is likely incorrect
+#     test_features.append(test_inputs[i-60:i, 0])
+
+# test_features = np.array(test_features)
+
+# test_features = np.reshape(test_features, (test_features.shape[0], test_features.shape[1], 1))
+# print(test_features.shape)
+
+# predicted_stock_price = model.predict(test_features)
+
+# predicted_stock_price = sc.inverse_transform(predicted_stock_price)
+# print(predicted_stock_price.shape)
+
+# print(test_stock_data_processed.shape)
+
+# plt.figure(figsize=(10,6))
+# plt.plot(test_stock_data_processed, color='blue', label='Actual Apple Stock Price')
+# plt.plot(predicted_stock_price , color='red', label='Predicted Apple Stock Price')
+# plt.title('Apple Stock Price Prediction')
+# plt.xlabel('Date')
+# plt.ylabel('Apple Stock Price')
+# plt.legend()
+# plt.show()￼Enter
+test_stock_data_processed = test_stock_data.iloc[:, 1:2].values
+
+print(test_stock_data_processed.shape)
+
+# Concatenate the 'Close' prices from both datasets
+all_stock_data = pd.concat((stock_data['Close'], test_stock_data['Close']), axis = 0)
+
+# Prepare inputs for prediction.
+# The logic here is to take the last 60 days from the training data
+# and the test data to create the input sequences for the test prediction.
+# The slicing `len(all_stock_data) - len(test_stock_data) - 60:`
+# correctly selects the last 60 days of the training data plus the test data.
+inputs = all_stock_data[len(all_stock_data) - len(test_stock_data) - 60:].values
+inputs = inputs.reshape(-1,1)
+inputs = sc.transform(inputs)
+
+# Create X_test features. The loop range (60, 129) corresponds to
+# creating prediction inputs for each day in the test set.
+# len(test_stock_data) is 69 for the original date range '2019-01-01' to '2019-04-10'.
+# The loop should go from 60 to 60 + len(test_stock_data).
+# Let's make this dynamic based on the actual length of test_stock_data.
+test_data_len = len(test_stock_data_processed)
+X_test = []
+for i in range(60, 60 + test_data_len):
+    X_test.append(inputs[i-60:i, 0])
+st = np.array(X_test)
+X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+predicted_stock_price = model.predict(X_test)
+predicted_stock_price = sc.inverse_transform(predicted_stock_price)
+
+plt.figure(figsize=(10,6))
+plt.plot(test_stock_data_processed, color='blue', label='Actual Apple Stock Price')
+plt.plot(predicted_stock_price , color='red', label='Predicted Apple Stock Price')
+plt.title('Apple Stock Price Prediction')
+plt.xlabel('Date')
+plt.ylabel('Apple Stock Price')
+plt.legend()
+plt.show()
+
+# The following block seems to be a repetition of the prediction part with a different loop range (60, 291).
+# This range (291) does not seem to align with the length of the test data or the combined data.
+# It appears to be based on an incorrect assumption about the data length.
+# Let's remove this potentially incorrect prediction block.
+
+# #inputs = inputs.reshape(-1,1)
+# #inputs = sc.transform(inputs)
+
+# test_inputs = test_stock_data_processed.reshape(-1,1)
+# test_inputs = sc.transform(test_inputs)
